@@ -1,14 +1,13 @@
-const serverless = require('serverless-http');
 const { getCollections } = require('../src/lib/database');
 const { createApp } = require('../src/server');
 
-let handler = null;
+let app = null;
 let initPromise = null;
 
 async function init() {
-    if (handler) {
-        console.log('[init] Handler already initialized, returning cached');
-        return handler;
+    if (app) {
+        console.log('[init] App already initialized, returning cached');
+        return app;
     }
     if (initPromise) {
         console.log('[init] Waiting for init to complete...');
@@ -23,16 +22,12 @@ async function init() {
             console.log('[init] Database initialized');
             
             console.log('[init] Creating Express app...');
-            const app = createApp();
-            console.log('[init] App created');
+            app = createApp();
+            console.log('[init] App created successfully');
             
-            console.log('[init] Wrapping app with serverless-http...');
-            handler = serverless(app);
-            console.log('[init] Handler created successfully');
-            
-            return handler;
+            return app;
         } catch (err) {
-            console.error('[init] Initialization failed:', err.message);
+            console.error('[init] Initialization failed:', err.message, err.stack);
             throw err;
         }
     })();
@@ -43,22 +38,21 @@ async function init() {
 module.exports = async (req, res) => {
     try {
         console.log(`[${new Date().toISOString()}] Incoming request: ${req.method} ${req.url}`);
-        const h = await init();
-        console.log(`[${new Date().toISOString()}] Handler initialized, invoking...`);
-        if (typeof h !== 'function') {
-            throw new Error(`Handler is not a function: ${typeof h}`);
-        }
-        return h(req, res);
+        const expressApp = await init();
+        console.log(`[${new Date().toISOString()}] App initialized, handling request...`);
+        
+        // Call Express app directly as a request handler
+        expressApp(req, res);
     } catch (err) {
-        console.error(`[${new Date().toISOString()}] Serverless handler error:`, err.message, err.stack);
+        console.error(`[${new Date().toISOString()}] Error:`, err.message, err.stack);
         if (!res.headersSent) {
             res.statusCode = 500;
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({
                 error: 'Internal Server Error',
-                message: err.message,
-                type: err.constructor.name
+                message: err.message
             }, null, 2));
         }
     }
 };
+
