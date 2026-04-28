@@ -20,11 +20,11 @@ async function init() {
             console.log('[init] Initializing database connection...');
             await getCollections();
             console.log('[init] Database initialized');
-            
+
             console.log('[init] Creating Express app...');
             app = createApp();
             console.log('[init] App created successfully');
-            
+
             return app;
         } catch (err) {
             console.error('[init] Initialization failed:', err.message, err.stack);
@@ -40,7 +40,7 @@ module.exports = async (req, res) => {
         console.log(`[${new Date().toISOString()}] Incoming request: ${req.method} ${req.url}`);
         const expressApp = await init();
         console.log(`[${new Date().toISOString()}] App initialized, handling request...`);
-        
+
         // Call Express app directly as a request handler
         expressApp(req, res);
     } catch (err) {
